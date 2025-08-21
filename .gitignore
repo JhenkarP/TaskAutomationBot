@@ -1,6 +1,5 @@
 # Ignore sensitive Gmail API credentials
-EmailBot/token.json
-EmailBot/credentials.json
+EmailBot/secrets
 
 # Python virtual environment
 venv/

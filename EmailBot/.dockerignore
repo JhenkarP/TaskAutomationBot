@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+data/
+logs/
+secrets/       # keep local secrets out of Docker image

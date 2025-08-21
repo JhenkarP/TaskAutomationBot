@@ -12,29 +12,42 @@ class NetworkMonitor:
     def ping_host(host="8.8.8.8"):
         param = "-n" if platform.system().lower() == "windows" else "-c"
         command = ["ping", param, "4", host]
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        logger.info(f"Ping {host} result: {result.stdout.strip()}")
-        return result.stdout
+        try:
+            output = subprocess.check_output(command, stderr=subprocess.STDOUT, universal_newlines=True)
+            logger.info(f"Ping successful to {host}")
+            return {"status": "success", "output": output}
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Ping failed to {host}: {e.output}")
+            return {"status": "failed", "output": e.output}
+        except Exception as e: 
+            logger.error(f"Ping exception to {host}: {str(e)}")
+            return {"status": "failed", "output": str(e)}
 
     @staticmethod
     def tcp_client_demo(host="example.com", port=80):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(5)
-                s.connect((host, port))
-                logger.info(f"Connected to {host}:{port}")
-                return True
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(3)
+            sock.connect((host, port))
+            sock.close()
+            logger.info(f"TCP connection successful to {host}:{port}")
+            return "connected"
         except Exception as e:
-            logger.warning(f"TCP connection failed to {host}:{port} - {e}")
-            return False
+            logger.error(f"TCP connection failed to {host}:{port} - {str(e)}")
+            return f"failed: {str(e)}"
 
     @staticmethod
     def list_network_interfaces():
-        addrs = psutil.net_if_addrs()
-        interfaces = {}
-        for iface, addr_list in addrs.items():
-            ipv4s = [addr.address for addr in addr_list if addr.family == socket.AF_INET]
-            if ipv4s:
-                interfaces[iface] = ipv4s
-        logger.info(f"Interfaces found: {interfaces}")
-        return interfaces
+        interfaces = psutil.net_if_addrs()
+        result = {}
+        for iface, addrs in interfaces.items():
+            result[iface] = []
+            for addr in addrs:
+                result[iface].append({
+                    "family": str(addr.family),
+                    "address": addr.address,
+                    "netmask": addr.netmask,
+                    "broadcast": addr.broadcast
+                })
+        logger.info("Listed network interfaces")
+        return result

@@ -1,10 +1,8 @@
-# Base image
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy all files including credentials
-COPY . /app
+RUN apt-get update && apt-get install -y iputils-ping && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 RUN pip install --no-cache-dir \
@@ -17,10 +15,11 @@ RUN pip install --no-cache-dir \
     python-dateutil \
     apscheduler \
     psutil \
-    pytest
+    pytest \
+    httpx
 
-# Expose FastAPI port
+COPY . .
+
 EXPOSE 8000
 
-# Run app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

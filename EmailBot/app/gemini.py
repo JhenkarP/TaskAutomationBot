@@ -2,8 +2,11 @@
 import time
 import requests
 from dateutil import parser
+from app.logger_setup import get_logger
 
-GEMINI_API_KEY = "AIzaSyDPL6SLNUlBDlax-U4TqVJzBW0_Ficboco"
+logger = get_logger("gemini")
+
+GEMINI_API_KEY = "AIzaSyC5qJjEkXP0eLy2var0LEqGxK94BbbLLkU"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 _last_call_time = 0
@@ -14,6 +17,7 @@ def normalize_deadline(deadline_text: str) -> str:
         dt = parser.parse(deadline_text, fuzzy=True)
         return dt.strftime("%Y-%m-%d")
     except Exception:
+        logger.error(f"Failed to normalize deadline: {deadline_text}")
         return None
 
 def call_gemini_api(prompt_text: str):
@@ -21,10 +25,12 @@ def call_gemini_api(prompt_text: str):
     now = time.time()
     if now - _last_call_time < MIN_INTERVAL:
         wait = MIN_INTERVAL - (now - _last_call_time)
+        logger.info(f"Rate limiting: sleeping {wait:.2f}s before Gemini call")
         time.sleep(wait)
 
     headers = {"Content-Type": "application/json"}
     payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
+    logger.info("Calling Gemini API")
 
     response = requests.post(f"{GEMINI_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
     _last_call_time = time.time()
@@ -40,10 +46,13 @@ def call_gemini_api(prompt_text: str):
             deadline_raw = lines[2].replace("Deadline:", "").strip() if len(lines) > 2 else "No deadline"
             deadline = normalize_deadline(deadline_raw)
 
+            logger.info("Gemini API call succeeded and parsed")
             return {"summary": summary or "No summary",
                     "company": company or "Unknown company",
                     "deadline": deadline}
         except Exception as e:
+            logger.error(f"Gemini parse error: {e}")
             return {"summary": f"ParseError: {e}", "company": "Unknown company", "deadline": None}
     else:
+        logger.error(f"Gemini API error {response.status_code}: {response.text}")
         return {"summary": f"Error: {response.text}", "company": "Unknown company", "deadline": None}

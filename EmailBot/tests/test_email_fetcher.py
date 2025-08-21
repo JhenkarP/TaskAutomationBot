@@ -1,10 +1,8 @@
+#TaskAutomationBots\EmailBot\tests\test_email_fetcher.py
 import pytest
-from app.email_fetcher import fetch_last_emails
+from app import main
 
-def test_fetch_emails_structure():
-    emails = fetch_last_emails(max_results=1)
-    if emails:
-        email = emails[0]
-        assert "id" in email
-        assert "subject" in email
-        assert "body" in email
+def test_process_email_skip_blocked(monkeypatch):
+    monkeypatch.setattr("app.firewall.Firewall.check", lambda _: False)
+    result = main.process_emails()
+    assert result is None
