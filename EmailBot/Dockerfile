@@ -16,7 +16,9 @@ RUN pip install --no-cache-dir \
     apscheduler \
     psutil \
     pytest \
-    httpx
+    httpx \
+    pytesseract pillow \
+    python-dotenv
 
 COPY . .
 

@@ -3,10 +3,18 @@ import time
 import requests
 from dateutil import parser
 from app.logger_setup import get_logger
+from dotenv import  dotenv_values
+
+env_vars = dotenv_values(".env")  
+
 
 logger = get_logger("gemini")
 
-GEMINI_API_KEY = "AIzaSyC5qJjEkXP0eLy2var0LEqGxK94BbbLLkU"
+GEMINI_API_KEY = env_vars.get("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in environment variables")
+
+print("DEBUG: GEMINI_API_KEY loaded:", GEMINI_API_KEY)
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 _last_call_time = 0

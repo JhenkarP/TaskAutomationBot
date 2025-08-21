@@ -1,10 +1,11 @@
-#TaskAutomationBots\EmailBot\app\email_fetcher.py
+# TaskAutomationBots/EmailBot/app/email_fetcher.py
 import os
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from app.logger_setup import get_logger
+from app.ocr_helper import extract_text_from_image
 
 logger = get_logger("email_fetcher")
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -12,7 +13,6 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 def fetch_last_emails(max_results=20):
     logger.info(f"Fetching last emails: max_results={max_results}")
     creds = None
-
     credentials_path = os.getenv("GOOGLE_CREDENTIALS", "secrets/credentials.json")
     token_path = os.getenv("GOOGLE_TOKEN", "secrets/token.json")
 
@@ -33,7 +33,6 @@ def fetch_last_emails(max_results=20):
             logger.info("Wrote updated Gmail token.json")
 
     service = build("gmail", "v1", credentials=creds)
-    logger.info("Gmail service client initialized")
     results = service.users().messages().list(userId="me", maxResults=max_results).execute()
     messages = results.get("messages", [])
 
@@ -43,6 +42,7 @@ def fetch_last_emails(max_results=20):
         subject = ""
         sender_name = ""
         sender_email = ""
+        body = m.get("snippet", "")
 
         for header in m["payload"]["headers"]:
             if header["name"] == "Subject":
@@ -56,7 +56,16 @@ def fetch_last_emails(max_results=20):
                     sender_name = from_value
                     sender_email = from_value
 
-        body = m.get("snippet", "")
+        if 'parts' in m['payload']:
+            for part in m['payload']['parts']:
+                if part.get('filename') and 'image/' in part.get('mimeType', ''):
+                    data = part['body'].get('data')
+                    if data:
+                        import base64
+                        file_bytes = base64.urlsafe_b64decode(data)
+                        ocr_text = extract_text_from_image(file_bytes)
+                        body += f"\n[OCR Text]: {ocr_text}"
+
         emails.append({
             "id": msg["id"],
             "subject": subject,

@@ -5,3 +5,5 @@ __pycache__/
 data/
 logs/
 secrets/       # keep local secrets out of Docker image
+
+.env
