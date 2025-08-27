@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir \
     pytest \
     httpx \
     pytesseract pillow \
-    python-dotenv
+    python-dotenv 
 
 COPY . .
 

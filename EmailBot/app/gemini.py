@@ -14,7 +14,6 @@ GEMINI_API_KEY = env_vars.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found in environment variables")
 
-print("DEBUG: GEMINI_API_KEY loaded:", GEMINI_API_KEY)
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 _last_call_time = 0
