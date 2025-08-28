@@ -1,0 +1,26 @@
+/* TaskAutomationBots\EmailAssistant\src\styles\Marquee.css */
+.animate-marquee {
+  display: flex;
+  gap: 1rem;
+  animation: marquee 20s linear infinite;
+}
+
+.animate-marquee-reverse {
+  display: flex;
+  gap: 1rem;
+  animation: marquee-reverse 20s linear infinite;
+}
+
+.hover\:pause-scroll:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}

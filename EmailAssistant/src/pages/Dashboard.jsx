@@ -29,8 +29,10 @@ export default function Dashboard() {
 
       setEmails(updatedEmails);
       setTotalEmails(updatedEmails.length);
+
       const blocked = await api.getAllBlocked();
       setBlockedCount(blocked.length);
+
       setPinnedEmails(updatedEmails.filter((e) => e.pinned));
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -48,6 +50,7 @@ export default function Dashboard() {
       const updatedEmails = emails.map((e) =>
         e.id === emailId ? { ...e, pinned: newPinnedState } : e
       );
+
       setEmails(updatedEmails);
       setPinnedEmails(updatedEmails.filter((e) => e.pinned));
     } catch (error) {
@@ -68,6 +71,9 @@ export default function Dashboard() {
               }
             : e
         )
+      );
+      setPinnedEmails((prev) =>
+        prev.map((e) => (e.id === emailId ? { ...e, deadline: newDeadline } : e))
       );
     } catch (error) {
       console.error("Error updating deadline:", error);
@@ -174,7 +180,11 @@ export default function Dashboard() {
       <BottomBar currentPage="Dashboard" />
 
       {/* Modal */}
-      <EmailModal email={selectedEmail} onClose={closeEmailModal} />
+      <EmailModal
+        email={selectedEmail}
+        onClose={closeEmailModal}
+        onSave={loadDashboardData}  // ✅ Refresh after save
+      />
     </div>
   );
 }

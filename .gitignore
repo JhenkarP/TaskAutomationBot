@@ -1,6 +1,7 @@
 # Ignore sensitive Gmail API credentials
 EmailBot/secrets
 
+EmailAssistant/node_modules
 # Python virtual environment
 venv/
 __pycache__/
