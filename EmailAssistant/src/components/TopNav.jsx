@@ -4,10 +4,10 @@ import { NavLink } from "react-router-dom";
 export default function TopNav() {
   const navItems = [
     { name: "Dashboard", path: "/dashboard" },
-    { name: "Emails", path: "/" },
+    { name: "Emails", path: "/emails" },
     { name: "Firewall", path: "/firewall" },
     { name: "Network", path: "/network" },
-    { name: "Logs", path: "/logs" },
+    { name: "Logs", path: "/" },
   ];
 
   return (
