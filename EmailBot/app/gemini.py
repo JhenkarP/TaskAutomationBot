@@ -3,19 +3,16 @@ import time
 import requests
 from dateutil import parser
 from app.logger_setup import get_logger
-from dotenv import  dotenv_values
+from dotenv import dotenv_values
 
 env_vars = dotenv_values(".env")  
-
-
 logger = get_logger("gemini")
 
 GEMINI_API_KEY = env_vars.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+    raise ValueError("GEMINI_API_KEY not found")
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-
 _last_call_time = 0
 MIN_INTERVAL = 6
 
@@ -31,32 +28,21 @@ def call_gemini_api(prompt_text: str):
     global _last_call_time
     now = time.time()
     if now - _last_call_time < MIN_INTERVAL:
-        wait = MIN_INTERVAL - (now - _last_call_time)
-        logger.info(f"Rate limiting: sleeping {wait:.2f}s before Gemini call")
-        time.sleep(wait)
-
+        time.sleep(MIN_INTERVAL - (now - _last_call_time))
     headers = {"Content-Type": "application/json"}
     payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
-    logger.info("Calling Gemini API")
-
     response = requests.post(f"{GEMINI_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
     _last_call_time = time.time()
-
     if response.status_code == 200:
         try:
             output = response.json()
             text = output["candidates"][0]["content"]["parts"][0]["text"]
-
             lines = text.split("\n")
             summary = lines[0].replace("Summary:", "").strip() if len(lines) > 0 else "No summary"
             company = lines[1].replace("Company:", "").strip() if len(lines) > 1 else "Unknown company"
             deadline_raw = lines[2].replace("Deadline:", "").strip() if len(lines) > 2 else "No deadline"
             deadline = normalize_deadline(deadline_raw)
-
-            logger.info("Gemini API call succeeded and parsed")
-            return {"summary": summary or "No summary",
-                    "company": company or "Unknown company",
-                    "deadline": deadline}
+            return {"summary": summary or "No summary", "company": company or "Unknown company", "deadline": deadline}
         except Exception as e:
             logger.error(f"Gemini parse error: {e}")
             return {"summary": f"ParseError: {e}", "company": "Unknown company", "deadline": None}

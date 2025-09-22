@@ -1,10 +1,9 @@
-#TaskAutomationBots\EmailBot\app\main.py
+# TaskAutomationBots/EmailBot/app/main.py
 import os
 from fastapi import FastAPI, HTTPException
 from apscheduler.schedulers.background import BackgroundScheduler
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.email_fetcher import fetch_last_emails
 from app.gemini import call_gemini_api
 from app.db import (
@@ -16,50 +15,53 @@ from app.db import (
 from app.network import NetworkMonitor
 from app.firewall import Firewall
 from app.logger_setup import get_logger
+from app.cache import get_cache, set_cache, redis_client
 
 logger = get_logger("main")
-
-# ----------------- Email Processing -----------------
 
 def process_emails():
     emails = fetch_last_emails()
     for email in emails:
         sender_email = email['sender_email']
-        sender_ip = email.get('sender_ip', None)
-
-        # Firewall checks
+        sender_ip = email.get('sender_ip')
         if not Firewall.check(sender_email):
-            logger.warning(f"Skipped blocked email from: {sender_email}")
             continue
         if sender_ip and not Firewall.check(sender_ip):
-            logger.warning(f"Skipped blocked email from IP: {sender_ip}")
             continue
-
-        # Skip already processed
         if is_processed(email['id']):
             continue
-
-        # Build prompt
-        prompt = (
-            f"Email Subject: {email['subject']}\n"
-            f"Email Body: {email['body']}\n"
-            f"Extract summary, company, and deadline(summarize well and find deadlines - companies accurately ) in format:\n"
-            f"Summary: ...\nCompany: ...\nDeadline: ..."
-        )
-
-        result = call_gemini_api(prompt)
+        cache_key = f"email:{email['id']}"
+        cached_email = get_cache(cache_key)
+        if cached_email:
+            result = cached_email
+        else:
+            prompt = (
+                f"Email Subject: {email['subject']}\n"
+                f"Email Body: {email['body']}\n"
+                f"Extract summary, company, and deadline in format:\n"
+                f"Summary: ...\nCompany: ...\nDeadline: ..."
+            )
+            gemini_result = call_gemini_api(prompt)
+            result = {
+                "id": email['id'],
+                "subject": email['subject'],
+                "body": email['body'],
+                "summary": gemini_result.get('summary', ''),
+                "company": gemini_result.get('company', ''),
+                "deadline": gemini_result.get('deadline', ''),
+                "sender_name": email['sender_name'],
+                "sender_email": sender_email
+            }
+            set_cache(cache_key, result, ttl=86400)
         save_email(
-            email['id'],
-            email['subject'],
+            result['id'],
+            result['subject'],
             result['summary'],
             result['company'],
             result['deadline'],
-            email['sender_name'],
-            sender_email
+            result['sender_name'],
+            result['sender_email']
         )
-        logger.info(f"Processed email {email['id']}")
-
-# ----------------- FastAPI App -----------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -73,7 +75,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -81,8 +82,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ----------------- Email Routes -----------------
 
 @app.get("/emails")
 def get_emails():
@@ -104,24 +103,30 @@ def get_emails():
         })
     return emails
 
+@app.get("/emails/cached")
+def get_cached_emails():
+    keys = redis_client.keys("email:*")
+    emails = []
+    for key in keys:
+        cached = get_cache(key)
+        if cached:
+            emails.append(cached)
+    return emails
+
 @app.patch("/emails/{email_id}")
 def update_email_deadline(email_id: str, payload: dict):
-    """Update deadline only; frontend uses deadline to add dynamic score"""
     new_deadline = payload.get("deadline")
     if not new_deadline:
         raise HTTPException(status_code=400, detail="Deadline is required")
-
     cursor = conn.cursor()
     cursor.execute("UPDATE emails SET deadline = ? WHERE id = ?", (new_deadline, email_id))
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Email not found")
-
     conn.commit()
     return {"status": "success", "email_id": email_id, "new_deadline": new_deadline}
 
 @app.patch("/emails/pin/{email_id}")
 def pin_email(email_id: str, payload: dict):
-    """Pin or unpin email → recalc backend score"""
     pinned = payload.get("pinned", True)
     cursor = conn.cursor()
     cursor.execute("UPDATE emails SET pinned = ? WHERE id = ?", (int(pinned), email_id))
@@ -151,7 +156,10 @@ def get_prioritized_emails():
         })
     return emails
 
-# ----------------- VIP Routes -----------------
+@app.post("/fetch-emails")
+def fetch_emails_now():
+    process_emails()
+    return {"status": "Emails fetched and processed"}
 
 @app.post("/vip/add")
 def api_add_vip(payload: dict):
@@ -175,8 +183,6 @@ def api_remove_vip(payload: dict):
 def api_list_vips():
     return {"vips": get_all_vips()}
 
-# ----------------- Keywords Routes -----------------
-
 @app.post("/keyword/add")
 def api_add_keyword(payload: dict):
     word = payload.get("word")
@@ -199,17 +205,10 @@ def api_remove_keyword(payload: dict):
 def api_list_keywords():
     return {"keywords": get_all_keywords()}
 
-# ----------------- Other Utilities -----------------
-
-@app.get("/fetch-emails")
-def fetch_emails_now():
-    process_emails()
-    return {"status": "Emails fetched and processed"}
-
 @app.post("/reset-db")
 def reset_database():
     reset_db()
-    return {"status": "Database has been reset successfully"}
+    return {"status": "Database and cache reset successfully"}
 
 @app.post("/firewall/block/{identifier}")
 def block_identifier(identifier: str):

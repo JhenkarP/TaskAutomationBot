@@ -12,14 +12,18 @@ export default function BottomBar({ currentPage }) {
   const formattedDateTime = dateTime.toLocaleString();
 
   return (
-    <div className="w-full bg-gray-800 text-white flex justify-between items-center px-6 py-2 text-sm fixed bottom-0 left-0">
+    <div className="w-full bg-gray-900 text-white flex justify-between items-center px-6 py-2 text-sm fixed bottom-0 left-0 shadow-lg">
       {/* Left Side - Username & Page */}
-      <div>
-        <span className="font-semibold">Jhenkar P</span> | {currentPage}
+      <div className="flex items-center gap-2">
+        <span className="font-semibold hover:text-blue-400 transition-colors cursor-default">
+          Jhenkar P
+        </span>
+        <span>|</span>
+        <span className="text-gray-300">{currentPage}</span>
       </div>
 
       {/* Right Side - Date & Time */}
-      <div>{formattedDateTime}</div>
+      <div className="text-gray-300">{formattedDateTime}</div>
     </div>
   );
 }

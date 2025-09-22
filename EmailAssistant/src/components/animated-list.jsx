@@ -1,21 +1,22 @@
-//TaskAutomationBots\EmailAssistant\src\components\animated-list.jsx
+// TaskAutomationBots/EmailAssistant/src/components/AnimatedList.jsx
 import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const AnimatedList = ({ children, className }) => {
+export const AnimatedList = ({ children, className, maxHeight = "500px" }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      const lastChild = containerRef.current.lastElementChild;
+      lastChild?.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, [children]);
 
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-y-auto flex flex-col space-y-2 ${className || ""}`}
-      style={{ maxHeight: "500px" }} // fixed height
+      className={`relative overflow-y-auto overflow-x-hidden flex flex-col space-y-2 ${className || ""}`}
+      style={{ maxHeight }}
     >
       <AnimatePresence initial={true}>
         {React.Children.map(children, (child, index) => (

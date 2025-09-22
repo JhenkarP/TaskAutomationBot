@@ -39,7 +39,8 @@ class Firewall:
             conn.commit()
             logger.warning(f"Blocked: {identifier}")
             if cls.is_valid_email(identifier):
-                from app.db import c as db_c, conn as db_conn
+                from app.db import conn as db_conn
+                db_c = db_conn.cursor()
                 db_c.execute("DELETE FROM emails WHERE sender_email = ?", (identifier,))
                 db_conn.commit()
                 logger.info(f"Deleted all emails from blocked sender: {identifier}")

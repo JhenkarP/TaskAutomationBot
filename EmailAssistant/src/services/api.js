@@ -1,21 +1,28 @@
-// TaskAutomationBots/EmailAssistant/src/services/api.js
+// TaskAutomationBots\EmailAssistant\src\services\api.js
 const BASE_URL = "http://127.0.0.1:8000";
 
+async function handleResponse(res) {
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || `HTTP error: ${res.status}`);
+  }
+  return res.json();
+}
+
 export const api = {
-  // ----------------- Email Routes -----------------
   getEmails: async () => {
     const res = await fetch(`${BASE_URL}/emails`);
-    return res.json();
+    return handleResponse(res);
   },
 
   getPrioritizedEmails: async () => {
     const res = await fetch(`${BASE_URL}/emails/prioritized`);
-    return res.json();
+    return handleResponse(res);
   },
 
   fetchEmailsNow: async () => {
-    const res = await fetch(`${BASE_URL}/fetch-emails`);
-    return res.json();
+    const res = await fetch(`${BASE_URL}/fetch-emails`, { method: "POST" });
+    return handleResponse(res);
   },
 
   updateEmailDeadline: async (id, deadline) => {
@@ -24,7 +31,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deadline }),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   updateEmailPin: async (id, pinned) => {
@@ -33,17 +40,16 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinned }),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
-  // ----------------- VIP Routes -----------------
   addVIP: async (email) => {
     const res = await fetch(`${BASE_URL}/vip/add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   removeVIP: async (email) => {
@@ -52,22 +58,21 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   listVIPs: async () => {
     const res = await fetch(`${BASE_URL}/vip/list`);
-    return res.json();
+    return handleResponse(res);
   },
 
-  // ----------------- Keywords Routes -----------------
   addKeyword: async (word) => {
     const res = await fetch(`${BASE_URL}/keyword/add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ word }),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   removeKeyword: async (word) => {
@@ -76,64 +81,56 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ word }),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   listKeywords: async () => {
     const res = await fetch(`${BASE_URL}/keyword/list`);
-    return res.json();
+    return handleResponse(res);
   },
 
-  // ----------------- Firewall Routes -----------------
   blockIdentifier: async (identifier) => {
-    const res = await fetch(`${BASE_URL}/firewall/block/${identifier}`, {
-      method: "POST",
-    });
-    return res.json();
+    const res = await fetch(`${BASE_URL}/firewall/block/${identifier}`, { method: "POST" });
+    return handleResponse(res);
   },
 
   unblockIdentifier: async (identifier) => {
-    const res = await fetch(`${BASE_URL}/firewall/unblock/${identifier}`, {
-      method: "POST",
-    });
-    return res.json();
+    const res = await fetch(`${BASE_URL}/firewall/unblock/${identifier}`, { method: "POST" });
+    return handleResponse(res);
   },
 
   checkIdentifier: async (identifier) => {
     const res = await fetch(`${BASE_URL}/firewall/check/${identifier}`);
-    return res.json();
+    return handleResponse(res);
   },
 
   getAllBlocked: async () => {
     const res = await fetch(`${BASE_URL}/firewall/blocked`);
-    return res.json();
+    return handleResponse(res);
   },
 
-  // ----------------- Network Routes -----------------
   pingHost: async (host) => {
     const res = await fetch(`${BASE_URL}/network/ping?host=${host}`);
-    return res.json();
+    return handleResponse(res);
   },
 
   tcpCheck: async (host, port) => {
     const res = await fetch(`${BASE_URL}/network/tcp?host=${host}&port=${port}`);
-    return res.json();
+    return handleResponse(res);
   },
 
   getInterfaces: async () => {
     const res = await fetch(`${BASE_URL}/network/interfaces`);
-    return res.json();
+    return handleResponse(res);
   },
 
-  // ----------------- Logs -----------------
   getLogs: async () => {
     const res = await fetch(`${BASE_URL}/logs`);
-    return res.json();
+    return handleResponse(res);
   },
 
-  // ----------------- Other -----------------
   resetDatabase: async () => {
     const res = await fetch(`${BASE_URL}/reset-db`, { method: "POST" });
-    return res.json();
+    return handleResponse(res);
   },
 };
